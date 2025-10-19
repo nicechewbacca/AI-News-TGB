@@ -1,3 +1,5 @@
+import os
+print(f"Bot started with PID: {os.getpid()}")
 import logging
 import requests
 import urllib.parse
@@ -58,4 +60,5 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__":
+
     main()
