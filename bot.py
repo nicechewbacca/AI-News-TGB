@@ -1,41 +1,47 @@
 import os
 import socket
+import threading
+import atexit
+import logging
+import requests
+import urllib.parse
 from datetime import datetime
+from dotenv import load_dotenv
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 start_time = datetime.now().isoformat()
 host_name = socket.gethostname()
 pid = os.getpid()
 
-print(f"Bot started at {start_time} on host {host_name} with PID: {pid}")
-
-import atexit
-atexit.register(lambda: print(f"Bot with PID {os.getpid()} is shutting down"))
-
-import logging
 logging.basicConfig(level=logging.INFO)
 logging.info(f"Bot started at {start_time} on host {host_name} with PID: {pid}")
-import requests
-import urllib.parse
-import os
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-from dotenv import load_dotenv
+atexit.register(lambda: logging.info(f"Bot with PID {os.getpid()} is shutting down"))
 
 load_dotenv()
-
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 NEWSAPI_KEY = os.getenv("NEWSAPI_KEY")
 
+if not TELEGRAM_TOKEN or not NEWSAPI_KEY:
+    raise ValueError("Не найден TELEGRAM_TOKEN или NEWSAPI_KEY в .env")
+
 def get_news(query):
-    url = f'https://newsapi.org/v2/everything?q={urllib.parse.quote(query)}&sortBy=publishedAt&language=en&apiKey={NEWSAPI_KEY}'
-    response = requests.get(url).json()
-    articles = response.get('articles', [])[:5]
-    news = ""
-    for article in articles:
-        title = article['title']
-        url = article['url']
-        news += f"• {title}\n{url}\n\n"
-    return news or f"Нет свежих новостей по теме: {query}"
+    try:
+        url = f'https://newsapi.org/v2/everything?q={urllib.parse.quote(query)}&sortBy=publishedAt&language=en&apiKey={NEWSAPI_KEY}'
+        response = requests.get(url, timeout=10)
+        data = response.json()
+        articles = data.get('articles', [])[:5]
+        if not articles:
+            return f"Нет свежих новостей по теме: {query}"
+        news = ""
+        for article in articles:
+            title = article.get('title', 'Без названия')
+            url = article.get('url', '')
+            news += f"• {title}\n{url}\n\n"
+        return news
+    except Exception as e:
+        logging.error(f"Ошибка при запросе новостей: {e}")
+        return "⚠️ Не удалось получить новости. Попробуйте позже."
 
 async def news_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Собираю свежие новости по ИИ...")
@@ -63,21 +69,25 @@ async def companies_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = "🔍 Поддерживаемые компании для фильтрации:\n" + "\n".join(f"• {c}" for c in companies)
     await update.message.reply_text(message)
 
+is_running = False
+
 def main():
-    logging.basicConfig(level=logging.INFO)
+    global is_running
+    if is_running:
+        logging.warning("Polling уже запущен — повторный запуск отменён")
+        return
+    is_running = True
+
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("news", news_command))
     app.add_handler(CommandHandler("company", company_command))
     app.add_handler(CommandHandler("deepseek", deepseek_command))
     app.add_handler(CommandHandler("companies", companies_command))
+    logging.info("Handlers registered. Starting polling...")
     app.run_polling()
 
 if __name__ == "__main__":
-    import threading
     if threading.active_count() == 1:
         main()
     else:
-        print("Polling already active — skipping duplicate start")
-
-
-
+        logging.warning("Polling already active — skipping duplicate start")
