@@ -7,6 +7,10 @@ host_name = socket.gethostname()
 pid = os.getpid()
 
 print(f"Bot started at {start_time} on host {host_name} with PID: {pid}")
+
+import atexit
+atexit.register(lambda: print(f"Bot with PID {os.getpid()} is shutting down"))
+
 import logging
 import requests
 import urllib.parse
@@ -69,4 +73,5 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
