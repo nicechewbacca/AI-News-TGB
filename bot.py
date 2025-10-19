@@ -12,6 +12,8 @@ import atexit
 atexit.register(lambda: print(f"Bot with PID {os.getpid()} is shutting down"))
 
 import logging
+logging.basicConfig(level=logging.INFO)
+logging.info(f"Bot started at {start_time} on host {host_name} with PID: {pid}")
 import requests
 import urllib.parse
 import os
@@ -71,7 +73,11 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__":
+    import threading
+    if threading.active_count() == 1:
+        main()
+    else:
+        print("Polling already active — skipping duplicate start")
 
-    main()
 
 
