@@ -1,5 +1,12 @@
 import os
-print(f"Bot started with PID: {os.getpid()}")
+import socket
+from datetime import datetime
+
+start_time = datetime.now().isoformat()
+host_name = socket.gethostname()
+pid = os.getpid()
+
+print(f"Bot started at {start_time} on host {host_name} with PID: {pid}")
 import logging
 import requests
 import urllib.parse
@@ -62,3 +69,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+
