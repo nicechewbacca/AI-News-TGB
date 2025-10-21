@@ -83,6 +83,9 @@ def company_menu():
     ])
 
 # 📲 Обработчики
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("📍 Главное меню:", reply_markup=main_menu())
+    
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -130,4 +133,5 @@ if __name__ == "__main__":
         main()
     else:
         logging.warning("Polling already active — skipping duplicate start")
+
 
