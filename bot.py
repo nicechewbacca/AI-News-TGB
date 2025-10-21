@@ -83,21 +83,18 @@ def company_menu():
     ])
 
 # 📲 Обработчики
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📍 Главное меню:", reply_markup=main_menu())
-
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
 
-    if data == "main_menu":
+    if data == "start_button" or data == "main_menu":
         await query.edit_message_text("📍 Главное меню:", reply_markup=main_menu())
 
     elif data == "latest_news":
         await query.edit_message_text("🧠 Свежие новости по ИИ...", reply_markup=news_menu())
         news = get_news("artificial intelligence")
-        await query.message.reply_text(news)
+        await query.message.reply_text(news, reply_markup=news_menu())
 
     elif data == "companies_menu":
         await query.edit_message_text("📋 Выберите компанию:", reply_markup=companies_menu())
@@ -106,7 +103,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         company = data.replace("company_", "")
         await query.edit_message_text(f"🏢 Новости по теме: {company}", reply_markup=company_menu())
         news = get_news(company)
-        await query.message.reply_text(news)
+        await query.message.reply_text(news, reply_markup=company_menu())
+
+    else:
+        await query.edit_message_text("⚠️ Неизвестная команда. Возвращаюсь в главное меню.", reply_markup=main_menu())
 
 # 🚀 Запуск приложения
 is_running = False
@@ -130,3 +130,4 @@ if __name__ == "__main__":
         main()
     else:
         logging.warning("Polling already active — skipping duplicate start")
+
